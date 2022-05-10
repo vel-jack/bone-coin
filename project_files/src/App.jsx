@@ -17,6 +17,7 @@ function App() {
   const [customerAddress, setCustomerAddress] = useState(null);
   const [tokenOwner, setTokenOwner] = useState("");
   const [ownedTokens, setOwnedTokens] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   //
 
@@ -114,6 +115,7 @@ function App() {
         const tx = await coinContract.transfer(to, bncAmount);
         console.log("Processing ");
         tx.wait();
+        setIsLoading(true);
         console.log("Processed, Hash : ", tx.hash);
         await ownedTokenHandler();
       } else {
@@ -133,6 +135,7 @@ function App() {
         const tx = await coinContract.mint(to, bncAmount);
         console.log("Processing ");
         tx.wait();
+        setIsLoading(true);
         console.log("Processed, Hash : ", tx.hash);
         await ownedTokenHandler();
         await getCoinInfo();
@@ -152,6 +155,7 @@ function App() {
         const tx = await coinContract.burn(bncAmount);
         console.log("Processing ");
         tx.wait();
+        setIsLoading(true);
         console.log("Processed, Hash : ", tx.hash);
         await getCoinInfo();
       } else {
@@ -169,12 +173,42 @@ function App() {
       [e.target.name]: e.target.value,
     }));
   };
-
+  const tokensBurnedEventHandler = (_owner, _amount, _msg) => {
+    setIsLoading(false);
+    console.log(_msg);
+    getCoinInfo();
+    ownedTokenHandler();
+  };
+  const tokensMintedEventHandler = (_owner, _amount, _msg) => {
+    setIsLoading(false);
+    console.log(_msg);
+    getCoinInfo();
+    ownedTokenHandler();
+  };
+  const transferEventHandler = (_from, _to, _amount) => {
+    setIsLoading(false);
+    console.log(`${utils.formatEther(_amount)} transfered`);
+    ownedTokenHandler();
+  };
   useEffect(() => {
     checkIsWalletConnected();
     getCoinInfo();
     tokenOwnerHandler();
     ownedTokenHandler();
+    if (isWalletConnected) {
+      const coinContract = getContract();
+      coinContract.on("tokensBurned", tokensBurnedEventHandler);
+      coinContract.on("additionalTokensMinted", tokensMintedEventHandler);
+      coinContract.on("Transfer", transferEventHandler);
+    }
+
+    return () => {
+      if (isWalletConnected) {
+        const coinContract = getContract();
+        coinContract.off("tokensBurned");
+        coinContract.off("additionalTokensMinted");
+        coinContract.off("Transfer");
+      }
   }, [isWalletConnected]);
   return (
     <div className="flex flex-col justify-center items-center p-10 bg-black min-h-screen">
@@ -184,7 +218,7 @@ function App() {
             <span className=" bg-gradient-to-tr from-[#fad54c] to-[#a17015] inline-block font-bold text-transparent bg-clip-text">
               Bone Coin Project
             </span>{" "}
-            🦴
+            <span className={`${isLoading ? "animate-ping" : ""}`}>🦴</span>
           </div>
           <div className="text-white">
             <p>
