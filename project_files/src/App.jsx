@@ -209,6 +209,7 @@ function App() {
         coinContract.off("additionalTokensMinted");
         coinContract.off("Transfer");
       }
+    };
   }, [isWalletConnected]);
   return (
     <div className="flex flex-col justify-center items-center p-10 bg-black min-h-screen">
